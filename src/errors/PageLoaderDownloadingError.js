@@ -1,10 +1,8 @@
-export default class PageLoaderDownloadingError extends Error {
-  constructor(message) {
-    super(message);
-    Object.setPrototypeOf(this, PageLoaderDownloadingError.prototype);
-    this.name = this.constructor.name;
-    this.message = message;
+import PageLoaderError from './PageLoaderError';
 
-    Error.captureStackTrace(this, PageLoaderDownloadingError);
-  }
+export default function PageLoaderDownloadingError(message) {
+  PageLoaderError.call(this, message);
 }
+
+PageLoaderDownloadingError.prototype = Object.create(PageLoaderError.prototype);
+PageLoaderDownloadingError.prototype.constructor = PageLoaderDownloadingError;

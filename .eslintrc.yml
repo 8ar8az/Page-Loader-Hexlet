@@ -24,3 +24,4 @@ rules:
     - 2
     - ignoreMethods:
       - replace
+      - create

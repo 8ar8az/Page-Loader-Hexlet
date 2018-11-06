@@ -1,10 +1,8 @@
-export default class PageLoaderFilesystemError extends Error {
-  constructor(message) {
-    super(message);
-    Object.setPrototypeOf(this, PageLoaderFilesystemError.prototype);
-    this.name = this.constructor.name;
-    this.message = message;
+import PageLoaderError from './PageLoaderError';
 
-    Error.captureStackTrace(this, PageLoaderFilesystemError);
-  }
+export default function PageLoaderFilesystemError(message) {
+  PageLoaderError.call(this, message);
 }
+
+PageLoaderFilesystemError.prototype = Object.create(PageLoaderError.prototype);
+PageLoaderFilesystemError.prototype.constructor = PageLoaderFilesystemError;

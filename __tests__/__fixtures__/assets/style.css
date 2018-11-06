@@ -1,0 +1,11 @@
+.hello {
+  width: 60%;
+  border: 2px solid darkgreen;
+  background: rgb(151, 189, 151);
+  color: darkgreen;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 10px;
+  line-height: 50px;
+  text-align: center;
+}

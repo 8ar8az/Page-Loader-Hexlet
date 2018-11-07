@@ -20,8 +20,12 @@ extends:
 
 rules:
   no-console: off
+  lodash/import-scope:
+    - 2
+    - member
   lodash/prefer-lodash-method:
     - 2
     - ignoreMethods:
       - replace
       - create
+      - map

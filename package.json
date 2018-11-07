@@ -1,6 +1,6 @@
 {
   "name": "@8ar8az/page-loader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "bin": {
     "page-loader": "dist/bin/page-loader.js"
   },
@@ -65,6 +65,7 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
+    "cheerio": "^1.0.0-rc.2",
     "commander": "^2.19.0",
     "lodash": "^4.17.11"
   }

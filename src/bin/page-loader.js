@@ -1,23 +1,21 @@
 #!/usr/bin/env node
 
 import program from 'commander';
-import downloadingPageAndSave from '..';
-import UI from '../ui';
-
-const currentUI = UI.cliUI;
+import downloadingHTMLDocumentAndSave from '..';
+import consoleView from '../view';
 
 program
-  .version('0.1.0', '-v, --version')
+  .version('0.2.0', '-v, --version')
   .description('CLI utility to downloading web-pages with its resources and save it on your local disk.')
   .option('--output [path]', 'Input the output path to save files', process.cwd())
   .arguments('<url>')
   .action((url) => {
-    downloadingPageAndSave(url, program.output, currentUI)
+    downloadingHTMLDocumentAndSave(url, program.output)
       .then((filepathOfSavedFile) => {
-        currentUI.showSuccessMessage(filepathOfSavedFile);
+        consoleView.showSuccessMessage(filepathOfSavedFile);
       })
-      .catch(() => {
-        currentUI.showAbortMessage();
+      .catch((err) => {
+        consoleView.showAbortMessage(err.message);
         process.exit(1);
       });
   })

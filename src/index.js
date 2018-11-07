@@ -1,49 +1,136 @@
-import axios from 'axios';
-import httpAdapter from 'axios/lib/adapters/http';
 import fs from 'fs';
 import path from 'path';
-import UI from './ui';
-import CustomErrors from './errors';
-
-axios.defaults.adapter = httpAdapter;
+import cheerio from 'cheerio';
+import { keys } from 'lodash';
+import axios from './lib/axios';
 
 const emptyPathnameCharacter = '/';
-const filenameFormattingCharacters = {
-  fileExtension: '.html',
+const formatCharacters = {
+  htmlDocFileExtension: '.html',
+  localResourcesDirEnding: '_files',
   characterForReplace: '-',
 };
 
-const getFilename = (pageURL) => {
-  const { hostname, pathname } = new URL(pageURL);
-
-  const isPathnameEmpty = () => (pathname === emptyPathnameCharacter);
-
-  const formatedPathname = isPathnameEmpty() ? '' : pathname;
-  const filename = `${hostname}${formatedPathname}`.replace(/[^a-z\d]/gi, filenameFormattingCharacters.characterForReplace);
-  return `${filename}${filenameFormattingCharacters.fileExtension}`;
+const typesOfLocalResources = {
+  link: {
+    sourceAttribute: 'href',
+    responseType: 'text',
+  },
+  script: {
+    sourceAttribute: 'src',
+    responseType: 'text',
+  },
+  img: {
+    sourceAttribute: 'src',
+    responseType: 'arraybuffer',
+  },
 };
 
-export default (pageURL, pathForSave, currentUI = UI.libraryUI) => {
-  const filename = getFilename(pageURL);
-  const fullFilepath = path.resolve(pathForSave, filename);
+const formattingUrlComponent = component => component.replace(/[^\w]|_/gi, formatCharacters.characterForReplace);
 
-  return axios.get(pageURL, { responseType: 'text' })
-    .catch((err) => {
-      const error = new CustomErrors.PageLoaderDownloadingError(err.message);
-      currentUI.informAboutDownloadingError(pageURL, error.message);
-      throw error;
-    })
+const formattingUrlOfHtmlDocument = (url) => {
+  const { hostname, pathname } = url;
+  const isPathnameEmpty = () => pathname === emptyPathnameCharacter;
 
-    .then(response => fs.promises.writeFile(fullFilepath, response.data))
-    .catch((err) => {
-      if (err instanceof CustomErrors.PageLoaderDownloadingError) {
-        throw err;
+  const formatedHostname = formattingUrlComponent(hostname);
+  const formatedPathname = isPathnameEmpty() ? '' : formattingUrlComponent(pathname);
+  return `${formatedHostname}${formatedPathname}`;
+};
+
+const formattingUrlOfLocalResource = (url) => {
+  const { pathname } = url;
+  const { dir, name, ext } = path.parse(pathname);
+  const pathnameWithoutExt = path.format({ dir, name }).slice(1);
+
+  return `${formattingUrlComponent(pathnameWithoutExt)}${ext}`;
+};
+
+const downloadingDataFromUrl = (url, responseType) => axios.get(url, { responseType })
+  .then(response => response.data);
+
+const getHtmlAndBuildDom = (htmlDocument) => {
+  const url = htmlDocument.url.toString();
+
+  return downloadingDataFromUrl(url, 'text')
+    .then((html) => {
+      const $ = cheerio.load(html, { decodeEntities: false });
+      return { ...htmlDocument, $ };
+    });
+};
+
+const findDomElementsForLocalResources = (htmlDocument) => {
+  const selector = keys(typesOfLocalResources)
+    .map(tag => `${tag}:not([${typesOfLocalResources[tag].sourceAttribute}*="://"])`)
+    .join(', ');
+
+  const localResources = htmlDocument.$(selector);
+  return { ...htmlDocument, localResources };
+};
+
+const saveLocalResources = (htmlDocument, pathForSave) => {
+  const nameOfDirectoryForLocalResources = `${formattingUrlOfHtmlDocument(htmlDocument.url)}${formatCharacters.localResourcesDirEnding}`;
+  const pathForSaveLocalResources = path.join(pathForSave, nameOfDirectoryForLocalResources);
+
+  const getAndSaveLocalResource = (localResource) => {
+    const { sourceAttribute, responseType } = typesOfLocalResources[localResource.name];
+    const resourceUrlPathname = htmlDocument.$(localResource).attr(sourceAttribute);
+    const resourceUrl = new URL(resourceUrlPathname, htmlDocument.url.toString());
+
+    const filenameForResource = formattingUrlOfLocalResource(resourceUrl);
+    const pathForSaveLocalResource = path.join(pathForSaveLocalResources, filenameForResource);
+
+    return downloadingDataFromUrl(resourceUrl.toString(), responseType)
+      .then(resourceData => fs.promises.writeFile(pathForSaveLocalResource, resourceData))
+      .then(() => {
+        const newValueSourceAttribute = path.join(
+          nameOfDirectoryForLocalResources,
+          filenameForResource,
+        );
+        htmlDocument.$(localResource).attr(sourceAttribute, newValueSourceAttribute);
+      });
+  };
+
+  return fs.promises.mkdir(pathForSaveLocalResources)
+    .then(() => {
+      if (htmlDocument.localResources.length === 0) {
+        return null;
       }
 
-      const error = new CustomErrors.PageLoaderFilesystemError(err.message);
-      currentUI.informAboutFilesystemError(fullFilepath, error.message);
-      throw error;
-    })
+      const iterateLocalResources = ([first, ...rest]) => {
+        const iterNext = () => {
+          if (rest.length === 0) {
+            return null;
+          }
+          return iterateLocalResources(rest);
+        };
 
-    .then(() => fullFilepath);
+        return getAndSaveLocalResource(first)
+          .then(iterNext, iterNext);
+      };
+
+      return iterateLocalResources(htmlDocument.localResources.get());
+
+    /*      const mapperFn = (i, el) => getAndSaveLocalResource(el);
+            const getAndSaveResourcePromises = htmlDocument.localResources.map(mapperFn).get();
+            return Promise.all(getAndSaveResourcePromises);
+    */
+    })
+    .then(() => htmlDocument);
+};
+
+const saveHtmlDocument = (htmlDocument, pathForSave) => {
+  const filenameForHTMLDocument = `${formattingUrlOfHtmlDocument(htmlDocument.url)}${formatCharacters.htmlDocFileExtension}`;
+  const pathForSaveHTMLDocument = path.join(pathForSave, filenameForHTMLDocument);
+
+  return fs.promises.writeFile(pathForSaveHTMLDocument, htmlDocument.$.html(), 'UTF-8')
+    .then(() => pathForSaveHTMLDocument);
+};
+
+export default (htmlDocumentUrl, pathForSave) => {
+  const htmlDocument = { url: new URL(htmlDocumentUrl) };
+
+  return getHtmlAndBuildDom(htmlDocument)
+    .then(htmlDoc => findDomElementsForLocalResources(htmlDoc))
+    .then(htmlDoc => saveLocalResources(htmlDoc, pathForSave))
+    .then(htmlDoc => saveHtmlDocument(htmlDoc, pathForSave));
 };

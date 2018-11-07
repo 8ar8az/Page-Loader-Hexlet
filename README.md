@@ -2,20 +2,21 @@
 [![Test Coverage](https://api.codeclimate.com/v1/badges/058c434f01cddc7deae2/test_coverage)](https://codeclimate.com/github/8ar8az/Page-Loader-Hexlet/test_coverage)
 [![Build Status](https://travis-ci.org/8ar8az/Page-Loader-Hexlet.svg?branch=master)](https://travis-ci.org/8ar8az/Page-Loader-Hexlet)
 
-#Page-Loader
+# Page-Loader
 
 CLI utility to downloading web-pages with its resources and save it on your local disk.
 
-###Install
+### Install
 ```
 mkdir <dirname> (where will copy files)
 cd <dirname>
 git clone https://github.com/8ar8az/Page-Loader-Hexlet.git
-npm install
+make install
+make build
 sudo npm link
 ```
 
-###Usage
+### Usage
 ```
 Usage: page-loader [options] <url>
 
@@ -27,5 +28,5 @@ Options:
   -h, --help      output usage information
 ```
 
-###Example using
-[![asciicast](https://asciinema.org/a/aKK0FlgAUPkRXeCq9NVsvbCzF.svg)](https://asciinema.org/a/aKK0FlgAUPkRXeCq9NVsvbCzF)
+### Example using
+[![asciicast](https://asciinema.org/a/EBWJlkF2TtMu6BOVf7dBQYA1F.svg)](https://asciinema.org/a/EBWJlkF2TtMu6BOVf7dBQYA1F)

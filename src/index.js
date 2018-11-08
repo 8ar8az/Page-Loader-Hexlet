@@ -1,8 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import cheerio from 'cheerio';
-import { keys } from 'lodash';
+import debug from 'debug';
+import { keys, constant } from 'lodash';
 import axios from './lib/axios';
+
+const commonLogging = debug('page-loader:common');
+const httpLogging = debug('page-loader:http');
+const filesystemLogging = debug('page-loader:filesystem');
 
 const emptyPathnameCharacter = '/';
 const formatCharacters = {
@@ -51,23 +56,50 @@ const downloadingDataFromUrl = (url, responseType) => axios.get(url, { responseT
 const getHtmlAndBuildDom = (htmlDocument) => {
   const url = htmlDocument.url.toString();
 
+  httpLogging('GET-request to HTML-document: %s', url);
+
   return downloadingDataFromUrl(url, 'text')
     .then((html) => {
+      httpLogging('HTML-document has been downloaded');
       const $ = cheerio.load(html, { decodeEntities: false });
       return { ...htmlDocument, $ };
     });
 };
 
 const findDomElementsForLocalResources = (htmlDocument) => {
+  commonLogging('Finding elements for local resources in HTML-document...');
+
   const selector = keys(typesOfLocalResources)
     .map(tag => `${tag}:not([${typesOfLocalResources[tag].sourceAttribute}*="://"])`)
     .join(', ');
 
   const localResources = htmlDocument.$(selector);
+
+  commonLogging('Has been found %n local resources', localResources.length);
+
   return { ...htmlDocument, localResources };
 };
 
+const saveHtmlDocument = (htmlDocument, pathForSave) => {
+  const filenameForHtmlDocument = `${formattingUrlOfHtmlDocument(htmlDocument.url)}${formatCharacters.htmlDocFileExtension}`;
+  const pathForSaveHtmlDocument = path.join(pathForSave, filenameForHtmlDocument);
+
+  filesystemLogging('Write a file for HTML-document: %s', pathForSaveHtmlDocument);
+
+  return fs.promises.writeFile(pathForSaveHtmlDocument, htmlDocument.$.html(), 'UTF-8')
+    .then(() => {
+      filesystemLogging('File for HTML-document has been created');
+      commonLogging('Page-loader has finished downloading and saving HTML-document');
+
+      return pathForSaveHtmlDocument;
+    });
+};
+
 const saveLocalResources = (htmlDocument, pathForSave) => {
+  if (htmlDocument.localResources.length === 0) {
+    return htmlDocument;
+  }
+
   const nameOfDirectoryForLocalResources = `${formattingUrlOfHtmlDocument(htmlDocument.url)}${formatCharacters.localResourcesDirEnding}`;
   const pathForSaveLocalResources = path.join(pathForSave, nameOfDirectoryForLocalResources);
 
@@ -79,55 +111,44 @@ const saveLocalResources = (htmlDocument, pathForSave) => {
     const filenameForResource = formattingUrlOfLocalResource(resourceUrl);
     const pathForSaveLocalResource = path.join(pathForSaveLocalResources, filenameForResource);
 
+    httpLogging('GET-request to local resource: %s', resourceUrl);
+
     return downloadingDataFromUrl(resourceUrl.toString(), responseType)
-      .then(resourceData => fs.promises.writeFile(pathForSaveLocalResource, resourceData))
+      .then((resourceData) => {
+        httpLogging('Local resource with URL: "%s" has been downloaded', resourceUrl);
+        filesystemLogging('Write a file for local resource: %s', pathForSaveLocalResource);
+
+        fs.promises.writeFile(pathForSaveLocalResource, resourceData);
+      })
       .then(() => {
+        filesystemLogging('File for local resource: "%s" has been created', pathForSaveLocalResource);
+
         const newValueSourceAttribute = path.join(
           nameOfDirectoryForLocalResources,
           filenameForResource,
         );
         htmlDocument.$(localResource).attr(sourceAttribute, newValueSourceAttribute);
+        commonLogging("Source attribute of local resource's element has been changed to: %s", newValueSourceAttribute);
       });
   };
 
+  filesystemLogging('Make a directory for save files of local resources: %s', pathForSaveLocalResources);
   return fs.promises.mkdir(pathForSaveLocalResources)
     .then(() => {
-      if (htmlDocument.localResources.length === 0) {
-        return null;
-      }
+      filesystemLogging('The directory has been made');
+      commonLogging('Downloading and saving of local resources starting...');
 
-      const iterateLocalResources = ([first, ...rest]) => {
-        const iterNext = () => {
-          if (rest.length === 0) {
-            return null;
-          }
-          return iterateLocalResources(rest);
-        };
-
-        return getAndSaveLocalResource(first)
-          .then(iterNext, iterNext);
-      };
-
-      return iterateLocalResources(htmlDocument.localResources.get());
-
-    /*      const mapperFn = (i, el) => getAndSaveLocalResource(el);
-            const getAndSaveResourcePromises = htmlDocument.localResources.map(mapperFn).get();
-            return Promise.all(getAndSaveResourcePromises);
-    */
+      const mapperFn = (i, el) => getAndSaveLocalResource(el).then(constant(null), constant(null));
+      const getAndSaveResourcePromises = htmlDocument.localResources.map(mapperFn).get();
+      return Promise.all(getAndSaveResourcePromises);
     })
     .then(() => htmlDocument);
 };
 
-const saveHtmlDocument = (htmlDocument, pathForSave) => {
-  const filenameForHTMLDocument = `${formattingUrlOfHtmlDocument(htmlDocument.url)}${formatCharacters.htmlDocFileExtension}`;
-  const pathForSaveHTMLDocument = path.join(pathForSave, filenameForHTMLDocument);
-
-  return fs.promises.writeFile(pathForSaveHTMLDocument, htmlDocument.$.html(), 'UTF-8')
-    .then(() => pathForSaveHTMLDocument);
-};
-
 export default (htmlDocumentUrl, pathForSave) => {
   const htmlDocument = { url: new URL(htmlDocumentUrl) };
+
+  commonLogging('Page-loader has been started to the download HTML-document from: "%s", to "%s"', htmlDocument.url.toString(), pathForSave);
 
   return getHtmlAndBuildDom(htmlDocument)
     .then(htmlDoc => findDomElementsForLocalResources(htmlDoc))

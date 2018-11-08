@@ -1,13 +1,13 @@
 {
   "name": "@8ar8az/page-loader",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "bin": {
     "page-loader": "dist/bin/page-loader.js"
   },
   "description": "CLI utility to downloading web-pages with its resources and save it on your local disk.",
   "main": "dist/index.js",
   "scripts": {
-    "test": "jest",
+    "test": "DEBUG=page-loader:* jest",
     "build": "NODE_ENV=production babel src --out-dir dist --source-maps inline",
     "prepublishOnly": "npm run build"
   },
@@ -67,6 +67,7 @@
     "axios": "^0.18.0",
     "cheerio": "^1.0.0-rc.2",
     "commander": "^2.19.0",
+    "debug": "^4.1.0",
     "lodash": "^4.17.11"
   }
 }

@@ -29,4 +29,4 @@ Options:
 ```
 
 ### Example using
-[![asciicast](https://asciinema.org/a/m6HQJFHNThfjHzSTFkoiwgG2D.svg)](https://asciinema.org/a/m6HQJFHNThfjHzSTFkoiwgG2D)
+[![asciicast](https://asciinema.org/a/ic6D1oFRcrVzv3jQPOLNAaFhT.svg)](https://asciinema.org/a/ic6D1oFRcrVzv3jQPOLNAaFhT)

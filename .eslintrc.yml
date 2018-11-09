@@ -29,3 +29,5 @@ rules:
       - replace
       - create
       - map
+      - filter
+      - forEach

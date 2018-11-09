@@ -153,15 +153,11 @@ test('A failed download of web-page caused status code 404', async () => {
     .get(testURLPathname)
     .reply(404);
 
-  try {
-    await downloadingHTMLDocumentAndSave(testURL, pathForSave);
-    expect(false).toBeTruthy();
-  } catch (err) {
-    expect(err.constructor.name).not.toBe('JestAssertionError');
+  await expect(downloadingHTMLDocumentAndSave(testURL, pathForSave))
+    .rejects.toThrowErrorMatchingSnapshot();
 
-    const filesInPathForSave = await fs.promises.readdir(pathForSave);
-    expect(filesInPathForSave).toHaveLength(0);
-  }
+  const filesInPathForSave = await fs.promises.readdir(pathForSave);
+  expect(filesInPathForSave).toHaveLength(0);
 });
 
 test('A failed download of web-page caused wrong dirname for save', async () => {
@@ -173,17 +169,7 @@ test('A failed download of web-page caused wrong dirname for save', async () => 
       { 'Content-Type': 'text/html', 'Content-Length': Buffer.byteLength(originalHTMLDocument) },
     );
 
-  try {
-    await downloadingHTMLDocumentAndSave(testURL, notExistDirectory);
-    expect(false).toBeTruthy();
-  } catch (err) {
-    expect(err.constructor.name).not.toBe('JestAssertionError');
-  }
-
-  try {
-    await fs.promises.readdir(notExistDirectory);
-    expect(false).toBeTruthy();
-  } catch (err) {
-    expect(err.constructor.name).not.toBe('JestAssertionError');
-  }
+  await expect(downloadingHTMLDocumentAndSave(testURL, notExistDirectory))
+    .rejects.toThrowErrorMatchingSnapshot();
+  await expect(fs.promises.readdir(notExistDirectory)).rejects.toThrowErrorMatchingSnapshot();
 });

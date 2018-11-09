@@ -1,6 +1,6 @@
 {
   "name": "@8ar8az/page-loader",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "bin": {
     "page-loader": "dist/bin/page-loader.js"
   },
@@ -61,7 +61,8 @@
     "eslint-plugin-jest": "^21.27.1",
     "eslint-plugin-lodash": "^3.1.0",
     "jest": "^23.6.0",
-    "nock": "^10.0.2"
+    "nock": "^10.0.2",
+    "test-console": "^1.1.0"
   },
   "dependencies": {
     "axios": "^0.18.0",

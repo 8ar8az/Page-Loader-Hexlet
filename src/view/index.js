@@ -1,36 +1,31 @@
-const savingStatusCharacters = {
-  success: '+',
-  fail: '-',
-};
+import Listr from 'listr';
+import { noop } from 'lodash';
 
 const showAbortMessage = (message) => {
   console.error('Download has been aborted.');
   console.error(`Error message: ${message}`);
 };
 
-const showSuccessMessage = (filepath) => {
-  console.log(`Download has been finished with success.\nPath to saved file: "${filepath}".`);
+const showSuccessMessage = (filename) => {
+  console.log(`\nPage was downloaded as '${filename}'`);
 };
 
-const showStatusOfResourcesSaving = (resources) => {
-  const savedResources = resources.filter(resource => resource.isSaved);
-  const notSavedResources = resources.filter(resource => !resource.isSaved);
+const showResourcesSavingStatuses = (resources, getAndSaveLocalResource) => {
+  const makeTask = (resource) => {
+    const task = {
+      title: resource.resourceUrl.toString(),
+      task: () => getAndSaveLocalResource(resource),
+    };
 
-  console.log('This local resources has been successful saved:');
-  savedResources.forEach((resource) => {
-    console.log(`${savingStatusCharacters.success} ${resource.resourceUrl}`);
-  });
+    return task;
+  };
 
-  console.log();
-  console.error("This local resources hasn't been saved:");
-  notSavedResources.forEach((resource) => {
-    console.error(`${savingStatusCharacters.fail} ${resource.resourceUrl}`);
-    console.error(`Reason: ${resource.err.message}`);
-  });
+  const tasks = new Listr(resources.map(makeTask), { concurrent: true, exitOnError: false });
+  return tasks.run().catch(noop);
 };
 
 export default {
   showAbortMessage,
   showSuccessMessage,
-  showStatusOfResourcesSaving,
+  showResourcesSavingStatuses,
 };

@@ -5,3 +5,26 @@ exports[`A failed download of web-page caused status code 404 1`] = `"Request fa
 exports[`A failed download of web-page caused wrong dirname for save 1`] = `"ENOENT: no such file or directory, mkdir '/wrong-dir-name/123/www-my-test-999-com-my-page_files'"`;
 
 exports[`A failed download of web-page caused wrong dirname for save 2`] = `"ENOENT: no such file or directory, scandir '/wrong-dir-name/123'"`;
+
+exports[`Saving web-page that its all local resources has been saved (library view) 1`] = `
+Array [
+  Object {
+    "isSaved": true,
+    "resourceUrl": "http://www.my-test-999.com/assets/my-best-style.css",
+    "responseType": "text",
+    "setNewValueOfSourceAttribute": [Function],
+  },
+  Object {
+    "isSaved": true,
+    "resourceUrl": "http://www.my-test-999.com/assets/test.jpg",
+    "responseType": "arraybuffer",
+    "setNewValueOfSourceAttribute": [Function],
+  },
+  Object {
+    "isSaved": true,
+    "resourceUrl": "http://www.my-test-999.com/assets/script_1.js",
+    "responseType": "text",
+    "setNewValueOfSourceAttribute": [Function],
+  },
+]
+`;

@@ -3,6 +3,7 @@ import nock from 'nock';
 import path from 'path';
 import fs from 'fs';
 import downloadingHTMLDocumentAndSave from '../src';
+import consoleView from '../src/view';
 
 const testURLOrigin = 'http://www.my-test-999.com';
 const testURLPathname = '/my_page';
@@ -53,7 +54,7 @@ afterEach(() => {
   nock.cleanAll();
 });
 
-test('Saving web-page that its all local resources has been saved', async () => {
+test('Saving web-page that its all local resources has been saved (library view)', async () => {
   nock(testURLOrigin)
     .get(testURLPathname)
     .replyWithFile(
@@ -80,7 +81,10 @@ test('Saving web-page that its all local resources has been saved', async () => 
       { 'Content-Type': 'image/jpeg', 'Content-Length': Buffer.byteLength(originalImageLocalResource) },
     );
 
-  await downloadingHTMLDocumentAndSave(testURL, pathForSave);
+  const { resources, filename } = await downloadingHTMLDocumentAndSave(testURL, pathForSave);
+
+  expect(filename).toBe(savedHTMLDocumentFilename);
+  expect(resources).toMatchSnapshot();
   const savedHTMLDocument = await fs.promises.readFile(path.join(pathForSave, savedHTMLDocumentFilename), 'UTF-8');
   expect(savedHTMLDocument).toBe(resultHTMLWithAllLocalResourcesWasSaving);
 
@@ -128,7 +132,11 @@ test("Saving web-page that its only one local resources has been saved (several 
       { 'Content-Type': 'application/js', 'Content-Length': Buffer.byteLength(originalScriptLocalResource) },
     );
 
-  await downloadingHTMLDocumentAndSave(testURL, pathForSave);
+  await downloadingHTMLDocumentAndSave(
+    testURL,
+    pathForSave,
+    consoleView.showResourcesSavingStatuses,
+  );
   const savedHTMLDocument = await fs.promises.readFile(path.join(pathForSave, savedHTMLDocumentFilename), 'UTF-8');
   expect(savedHTMLDocument).toBe(resultHTMLWithOneLocalResourcesWasSaving);
 
